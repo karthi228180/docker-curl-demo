@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Docker image
         run: docker build -t myapp:${{ github.sha }} .
@@ -20,19 +20,14 @@ jobs:
       - name: Run container and verify with curl
         run: |
           set -eu
-
           docker run -d --name myapp-test \
-            -p 8080:8000 \
-            myapp:${{ github.sha }}
+            -p 8080:8000 myapp:${{ github.sha }}
 
           trap 'docker logs myapp-test || true; docker rm -f myapp-test >/dev/null 2>&1 || true' EXIT
 
           echo "Checking application with curl..."
-
           curl --fail --show-error --silent \
-            --retry 10 \
-            --retry-connrefused \
-            --retry-delay 1 \
+            --retry 10 --retry-connrefused --retry-delay 1 \
             http://localhost:8080/
 
           echo
