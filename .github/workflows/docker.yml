@@ -1,0 +1,39 @@
+
+name: Build and Test Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t myapp:${{ github.sha }} .
+
+      - name: Run container and verify with curl
+        run: |
+          set -eu
+
+          docker run -d --name myapp-test \
+            -p 8080:8000 \
+            myapp:${{ github.sha }}
+
+          trap 'docker logs myapp-test || true; docker rm -f myapp-test >/dev/null 2>&1 || true' EXIT
+
+          echo "Checking application with curl..."
+
+          curl --fail --show-error --silent \
+            --retry 10 \
+            --retry-connrefused \
+            --retry-delay 1 \
+            http://localhost:8080/
+
+          echo
+          echo "Container verification successful!"
